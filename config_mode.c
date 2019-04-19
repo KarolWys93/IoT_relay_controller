@@ -50,8 +50,12 @@ static void printConfig(void){
 		sendLine(buffer);
 		sendLineSeparator();
 
-		sendLine("Topic:");
-		sendLine(mqttConfig.topic);
+		sendLine("ValueTopic:");
+		sendLine(mqttConfig.value_topic);
+		sendLineSeparator();
+		
+		sendLine("StatusTopic:");
+		sendLine(mqttConfig.status_topic);
 		sendLineSeparator();
 		
 		sendLine("MQTT_User:");
@@ -62,7 +66,7 @@ static void printConfig(void){
 		sendLine("********");
 		sendLineSeparator();
 
-		sprintf(buffer, "Period: %u", getPeriod());
+		sprintf(buffer, "Hist: %u", getHysteresis());
 		sendLine(buffer);
 		sendLineSeparator();
 }
@@ -123,10 +127,17 @@ void config_mode(void){
 			 sendOK();
 		 }
 		 
-		 if (strcmp(textBuffer, "Topic") == 0)
+		 if (strcmp(textBuffer, "ValueTopic") == 0)
 		 {
 			 getSetting(textBuffer, BUFFER_SIZE);
-			 setTopic(textBuffer, BUFFER_SIZE);
+			 setValueTopic(textBuffer, BUFFER_SIZE);
+			 sendOK();
+		 }
+		 
+		 if (strcmp(textBuffer, "StatusTopic") == 0)
+		 {
+			 getSetting(textBuffer, BUFFER_SIZE);
+			 setStatusTopic(textBuffer, BUFFER_SIZE);
 			 sendOK();
 		 }
 		 
@@ -144,10 +155,10 @@ void config_mode(void){
 			 sendOK();
 		 }
 		 
-		 if (strcmp(textBuffer, "Period") == 0)
+		 if (strcmp(textBuffer, "Hist") == 0)
 		 {
 			 getSetting(textBuffer, BUFFER_SIZE);
-			 setPeriod(atoi(textBuffer));
+			 setHysteresis(atoi(textBuffer));
 			 sendOK();
 		 }
 	 }

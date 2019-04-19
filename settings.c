@@ -15,12 +15,13 @@ EEMEM char ssid_eeprom[WIFI_CONF_BUFFER_SIZE] = "wifi_name";
 EEMEM char password_eeprom[WIFI_CONF_BUFFER_SIZE] = "";
 
 EEMEM char host_eeprom[MQTT_CONF_BUFFER_SIZE] = "host.example.com";
-EEMEM char topic_eeprom[MQTT_CONF_BUFFER_SIZE] = "topic/example";
+EEMEM char value_topic_eeprom[MQTT_CONF_BUFFER_SIZE] = "topic/value_example";
+EEMEM char status_topic_eeprom[MQTT_CONF_BUFFER_SIZE] = "topic/status_example";
 EEMEM char mqtt_user_eeprom[MQTT_CREDENTIAL_BUFFER_SIZE] = "";
 EEMEM char mqtt_pass_eeprom[MQTT_CREDENTIAL_BUFFER_SIZE] = "";
 EEMEM uint16_t port_eeprom = 1883;
 
-EEMEM uint16_t period_eeprom = 2;
+EEMEM uint16_t hysteresis_eeprom = 1000;
 
 EEMEM char device_id_eeprom[DEVICE_ID_BUFFER_SIZE] = "--------";
 EEMEM uint8_t device_id_ok_eeprom = 0;
@@ -67,14 +68,16 @@ void setSSID(char* ssidBuffer, uint8_t len){
 /* connection settings */
 void getMQTTConfig(MqttConfig* config){
 	eeprom_read_block(config->host, host_eeprom, MQTT_CONF_BUFFER_SIZE);
-	eeprom_read_block(config->topic, topic_eeprom, MQTT_CONF_BUFFER_SIZE);
+	eeprom_read_block(config->value_topic, value_topic_eeprom, MQTT_CONF_BUFFER_SIZE);
+	eeprom_read_block(config->status_topic, status_topic_eeprom, MQTT_CONF_BUFFER_SIZE);
 	eeprom_read_block(config->mqtt_user, mqtt_user_eeprom, MQTT_CREDENTIAL_BUFFER_SIZE);
 	eeprom_read_block(config->mqtt_pass, mqtt_user_eeprom, MQTT_CREDENTIAL_BUFFER_SIZE);
 	
 	config->port = eeprom_read_word(&port_eeprom);
 	
 	config->host[MQTT_CONF_BUFFER_SIZE - 1] = '\0';
-	config->topic[MQTT_CONF_BUFFER_SIZE - 1] = '\0';
+	config->value_topic[MQTT_CONF_BUFFER_SIZE - 1] = '\0';
+	config->status_topic[MQTT_CONF_BUFFER_SIZE - 1] = '\0';
 	config->mqtt_user[MQTT_CREDENTIAL_BUFFER_SIZE - 1] = '\0';
 	config->mqtt_pass[MQTT_CREDENTIAL_BUFFER_SIZE - 1] = '\0';		
 }
@@ -88,11 +91,18 @@ void setHost(char* hostNameBuffer, uint8_t len){
 void setPort(uint16_t port){
 	eeprom_write_word(&port_eeprom, port);
 }
-void setTopic(char* topicBuffer, uint8_t len){
+void setValueTopic(char* valueTopicBuffer, uint8_t len){
 		if(len > MQTT_CONF_BUFFER_SIZE){
 			len = MQTT_CONF_BUFFER_SIZE;
 		}
-		eeprom_write_block(topicBuffer, topic_eeprom, len);
+		eeprom_write_block(value_topic_eeprom, value_topic_eeprom, len);
+}
+
+void setStatusTopic(char* statusTopicBuffer, uint8_t len){
+	if(len > MQTT_CONF_BUFFER_SIZE){
+		len = MQTT_CONF_BUFFER_SIZE;
+	}
+	eeprom_write_block(statusTopicBuffer, statusTopicBuffer, len);
 }
 
 void setMqttUser(char* mqttUserBuffer, uint8_t len){
@@ -110,11 +120,11 @@ void setMqttPass(char* mqttPassBuffer, uint8_t len){
 }
 
 /* other settings */
-uint16_t getPeriod(void){
-	return eeprom_read_word(&period_eeprom);
+uint16_t getHysteresis(void){
+	return eeprom_read_word(&hysteresis_eeprom);
 }
-void setPeriod(uint16_t period){
-	eeprom_write_word(&period_eeprom, period);
+void setHysteresis(uint16_t hysteresis){
+	eeprom_write_word(&hysteresis_eeprom, hysteresis);
 }
 
 uint8_t isDeviceIDok(void){

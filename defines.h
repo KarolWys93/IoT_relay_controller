@@ -18,7 +18,7 @@
 #define BAUD 19200
 
 //DHT11 hardware config
-#define  DHT11_line C, 5
+#define  RELAY_LINE C, 5
 
 //WiFi module enable pin
 #define  WiFi_enable_pin C, 4

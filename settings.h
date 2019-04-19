@@ -18,7 +18,8 @@
 
 typedef struct {
 	char host[MQTT_CONF_BUFFER_SIZE];
-	char topic[MQTT_CONF_BUFFER_SIZE];
+	char value_topic[MQTT_CONF_BUFFER_SIZE];
+	char status_topic[MQTT_CONF_BUFFER_SIZE];
 	char mqtt_user[MQTT_CREDENTIAL_BUFFER_SIZE];
 	char mqtt_pass[MQTT_CREDENTIAL_BUFFER_SIZE];
 	uint16_t port;
@@ -42,13 +43,14 @@ void getMQTTConfig(MqttConfig* config);
 
 void setHost(char* hostNameBuffer, uint8_t len);
 void setPort(uint16_t port);
-void setTopic(char* topicBuffer, uint8_t len);
+void setValueTopic(char* valueTopicBuffer, uint8_t len);
+void setStatusTopic(char* statusTopicBuffer, uint8_t len);
 void setMqttUser(char* mqttUserBuffer, uint8_t len);
 void setMqttPass(char* mqttPassBuffer, uint8_t len);
 
 /* other settings */
-uint16_t getPeriod(void);
-void setPeriod(uint16_t period);
+uint16_t getHysteresis(void);
+void setHysteresis(uint16_t hysteresis);
 
 uint8_t isDeviceIDok(void);
 void setDeviceID(char* deviceID);
