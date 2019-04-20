@@ -95,14 +95,14 @@ void setValueTopic(char* valueTopicBuffer, uint8_t len){
 		if(len > MQTT_CONF_BUFFER_SIZE){
 			len = MQTT_CONF_BUFFER_SIZE;
 		}
-		eeprom_write_block(value_topic_eeprom, value_topic_eeprom, len);
+		eeprom_write_block(valueTopicBuffer, value_topic_eeprom, len);
 }
 
 void setStatusTopic(char* statusTopicBuffer, uint8_t len){
 	if(len > MQTT_CONF_BUFFER_SIZE){
 		len = MQTT_CONF_BUFFER_SIZE;
 	}
-	eeprom_write_block(statusTopicBuffer, statusTopicBuffer, len);
+	eeprom_write_block(statusTopicBuffer, status_topic_eeprom, len);
 }
 
 void setMqttUser(char* mqttUserBuffer, uint8_t len){

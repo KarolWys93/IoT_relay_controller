@@ -24,15 +24,15 @@ typedef enum
 	WiFi_NO_IP,
 	WiFi_DNS_FAIL
 
-}WiFI_Status;
+}WiFi_Status;
 
-WiFI_Status WiFi_reset(uint32_t timeout);
+WiFi_Status WiFi_reset(uint32_t timeout);
 
-WiFI_Status WiFi_SetNetwork(char* SSID, char* password);
-WiFI_Status WiFi_checkAPconnection();
-WiFI_Status WiFi_openConnection(char* adress, uint16_t port);
-WiFI_Status WiFi_closeConnection();
-WiFI_Status WiFi_sendData(char* data, uint16_t dataLength);
+WiFi_Status WiFi_SetNetwork(char* SSID, char* password);
+WiFi_Status WiFi_checkAPconnection();
+WiFi_Status WiFi_openConnection(char* adress, uint16_t port);
+WiFi_Status WiFi_closeConnection();
+WiFi_Status WiFi_sendData(char* data, uint16_t dataLength);
 uint16_t WiFi_readData(char* data, uint16_t bufferLen, uint32_t timeout);
 
 

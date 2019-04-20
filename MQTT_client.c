@@ -192,7 +192,13 @@ uint8_t* MQTT_getPayload(uint8_t* message){
 	uint8_t type = MQTT_getType(message);
 	if (type == MQTT_CTRL_PUBLISH)
 	{
-		return message + 6 + MQTT_topicSize(message);
+		if (MQTT_getHeaderFlags(message) & 0x06)
+		{
+			return message + 6 + MQTT_topicSize(message);
+		}else{
+			return message + 4 + MQTT_topicSize(message);
+		}
+		
 	} else if(type == MQTT_CTRL_SUBACK){
 		return message + 4;	
 	} else{

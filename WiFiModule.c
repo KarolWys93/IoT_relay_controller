@@ -17,8 +17,8 @@
 static char wifi_cmdBuffer[70];
 
 
-WiFI_Status WiFi_reset(uint32_t timeout){
-	WiFI_Status status = WiFi_ERROR;
+WiFi_Status WiFi_reset(uint32_t timeout){
+	WiFi_Status status = WiFi_ERROR;
 	sendLine("AT+RST");
 	while(1){
 		if(readLine(wifi_cmdBuffer, sizeof wifi_cmdBuffer / sizeof *wifi_cmdBuffer, timeout) == 0){break;}
@@ -30,8 +30,8 @@ WiFI_Status WiFi_reset(uint32_t timeout){
 	return status;
 }
 
-WiFI_Status WiFi_SetNetwork(char* SSID, char* password){
-	WiFI_Status status = WiFi_ERROR;
+WiFi_Status WiFi_SetNetwork(char* SSID, char* password){
+	WiFi_Status status = WiFi_ERROR;
 
 	strcpy(wifi_cmdBuffer, "AT+CWJAP=\"");
 	strcat(wifi_cmdBuffer, SSID);
@@ -50,8 +50,8 @@ WiFI_Status WiFi_SetNetwork(char* SSID, char* password){
 	return status;
 }
 
-WiFI_Status WiFi_checkAPconnection(){
-	WiFI_Status status = WiFi_ERROR;
+WiFi_Status WiFi_checkAPconnection(){
+	WiFi_Status status = WiFi_ERROR;
 	bool waitForAnswer = true;
 
 	sendLine("AT+CWJAP?");
@@ -70,8 +70,8 @@ WiFI_Status WiFi_checkAPconnection(){
 	return status;
 }
 
-WiFI_Status WiFi_openConnection(char* adress, uint16_t port){
-		WiFI_Status status = WiFi_ERROR;
+WiFi_Status WiFi_openConnection(char* adress, uint16_t port){
+		WiFi_Status status = WiFi_ERROR;
 		bool waitForAnswer = true;
 		
 		char portAsString[6];
@@ -107,8 +107,8 @@ WiFI_Status WiFi_openConnection(char* adress, uint16_t port){
 		return status;
 }
 
-WiFI_Status WiFi_closeConnection(){
-	WiFI_Status status = WiFi_ERROR;
+WiFi_Status WiFi_closeConnection(){
+	WiFi_Status status = WiFi_ERROR;
 	bool waitForAnswer = true;
 
 	sendLine("AT+CIPCLOSE");
@@ -127,8 +127,8 @@ WiFI_Status WiFi_closeConnection(){
 	return status;
 }
 
-WiFI_Status WiFi_sendData(char* data, uint16_t dataLength){
-	WiFI_Status status = WiFi_ERROR;
+WiFi_Status WiFi_sendData(char* data, uint16_t dataLength){
+	WiFi_Status status = WiFi_ERROR;
 	bool waitForAnswer = true;
 	char sign = '\0';
 

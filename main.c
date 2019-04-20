@@ -21,7 +21,6 @@
 #include "config_mode.h"
 #include "MQTT_client.h"
 #include "rand8bit.h"
-#include "jsmn.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,7 +30,17 @@ static uint16_t setTemp = 1500;
 
 static void init(void);
 static void work(void);
-static WiFI_Status changeWiFiConfig();
+static WiFi_Status changeWiFiConfig(void);
+static void generateDeviceID(void);
+static void startWiFi(void);
+static void connectToServer(char* sendBuffer, char* recivedBuffer, MqttConfig* mqttConfig, char* deviceID);
+static uint8_t startSubscribe(char* sendBuffer, char* recivedBuffer, MqttConfig* mqttConfig);
+static uint8_t getTopicType(uint8_t* message, MqttConfig* mqttConfig);
+static uint16_t parse2num(char* string, uint8_t len);
+static uint16_t parseMessage(uint8_t* message);
+static void handleMessage(uint8_t* message, MqttConfig* mqttConfig);
+
+
 
 int main(void){
 	init();
@@ -50,7 +59,7 @@ static void init(void){
 	sei();
 }
 
-static WiFI_Status changeWiFiConfig(){
+static WiFi_Status changeWiFiConfig(){
 	WiFiConfig wifiConfig;
 	getWiFiConfig(&wifiConfig);
 	return WiFi_SetNetwork(wifiConfig.ssid, wifiConfig.password);
@@ -85,7 +94,7 @@ static void generateDeviceID(void){
 	}
 }
 
-static void startWiFi(){
+static void startWiFi(void){
 	WiFi_enable();
 	hw_sleep_ms(500);
 	WiFi_reset(5000);
@@ -116,11 +125,59 @@ static void connectToServer(char* sendBuffer, char* recivedBuffer, MqttConfig* m
 		if (len > 0 && MQTT_getType((uint8_t*)recivedBuffer) == MQTT_CTRL_CONNECTACK &&	MQTT_connackReturnCode((uint8_t*)recivedBuffer) == 0)
 		{
 			return;
-			} else {
+		} else {
 			WiFi_closeConnection();
 			hw_sleep_ms(5000);
 		}
 	}
+}
+
+static uint8_t startSubscribe(char* sendBuffer, char* recivedBuffer, MqttConfig* mqttConfig){
+	uint8_t messageLen = 0;
+	do 
+	{
+		messageLen = MQTT_pingPacket((uint8_t*) sendBuffer);
+		
+		if(WiFi_sendData(sendBuffer, messageLen) != WiFi_OK){return 0;}
+		messageLen = WiFi_readData(recivedBuffer, RECIVED_BUFFER_SIZE, 1000);
+		
+	} while (messageLen == 0 || MQTT_getType((uint8_t*) recivedBuffer) != MQTT_CTRL_PINGRESP);
+
+
+	messageLen = MQTT_subscribePacket((uint8_t* )sendBuffer, mqttConfig->status_topic, 0);
+	if(WiFi_sendData(sendBuffer, messageLen) != WiFi_OK){return 0;}
+
+	if (WiFi_readData(recivedBuffer, RECIVED_BUFFER_SIZE, 2000) != 0)
+	{
+		uint8_t responseType = MQTT_getType((uint8_t*) recivedBuffer);
+		if (responseType == MQTT_CTRL_PUBLISH)
+		{
+			handleMessage((uint8_t*) recivedBuffer, mqttConfig);
+		} else if (responseType == MQTT_CTRL_SUBACK){
+		} else {
+			return 0;
+		}
+	} else {
+		return 0;
+	}
+	
+	messageLen = MQTT_subscribePacket((uint8_t* )sendBuffer, mqttConfig->value_topic, 0);
+	if(WiFi_sendData(sendBuffer, messageLen) != WiFi_OK){return 0;}
+
+	if (WiFi_readData(recivedBuffer, RECIVED_BUFFER_SIZE, 2000) != 0)
+	{
+		uint8_t responseType = MQTT_getType((uint8_t*) recivedBuffer);
+		if (responseType == MQTT_CTRL_PUBLISH)
+		{
+			handleMessage((uint8_t*) recivedBuffer, mqttConfig);
+		} else if (responseType == MQTT_CTRL_SUBACK){
+		} else{
+			return 0;
+		}
+	} else {
+		return 0;
+	}
+	return 1;
 }
 
 static uint8_t getTopicType(uint8_t* message, MqttConfig* mqttConfig){
@@ -135,14 +192,6 @@ static uint8_t getTopicType(uint8_t* message, MqttConfig* mqttConfig){
 		}
 	}
 	return 0;
-}
-
-static uint8_t jsonEq(const char *json, jsmntok_t *token, const char *s) {
-	if (token->type == JSMN_STRING && (int) strlen(s) == token->end - token->start &&
-	strncmp(json + token->start, s, token->end - token->start) == 0) {
-		return 0;
-	}
-	return 1;
 }
 
 static uint16_t parse2num(char* string, uint8_t len){
@@ -173,27 +222,44 @@ static uint16_t parse2num(char* string, uint8_t len){
 	return (parsedNum * 100) + parsedDecimal;
 }
 
+static uint16_t parseMessage(uint8_t* message){
+	uint8_t* payload = MQTT_getPayload(message);
+	uint8_t payloadSize = MQTT_payloadSize(message);
+	
+	payload[payloadSize-1] = '\0';	//the last character should be "}", so we will not lose anything
+	
+	char* token = strstr((char*) payload, "\"temp\"");	//token size = 6
+	if (token == NULL)
+	{
+		return 0;
+	}
+
+	char* startValue = token + 6;
+	for (; startValue < ((char*) payload)+payloadSize; startValue++){
+		if (*startValue == ':')
+		{
+			startValue++;
+			break;
+		}
+	}
+	
+	char* endValue = startValue;
+	for (; endValue < ((char*) payload)+payloadSize; endValue++){
+		if (*endValue == ',' || *endValue == '}' || *endValue == ']')
+		{break;}
+	}
+	return parse2num(startValue, endValue-startValue);
+}
 
 static void handleMessage(uint8_t* message, MqttConfig* mqttConfig){
-	uint8_t numOfTokens = 0;
-	jsmn_parser jsonParser;
-	jsmntok_t jsonTokens [6];
-	jsmn_init(&jsonParser);
-	uint8_t topicType = getTopicType(message, mqttConfig); 
+	uint8_t topicType = getTopicType(message, mqttConfig);
+	sendLine("");
+	sendData(MQTT_getTopic(message), MQTT_topicSize(message));
+	sendLine(""); 
 	if (topicType == 1 || topicType == 2)
 	{
-		numOfTokens = jsmn_parse(&jsonParser, (char*) MQTT_getPayload(message), MQTT_payloadSize(message), jsonTokens, sizeof(jsonTokens)/sizeof(jsonTokens[0]));
-		if ((numOfTokens < 1) || jsonTokens[0].type != JSMN_OBJECT) {return;}
-		
-		for(uint8_t i = 1; i < numOfTokens; i++){
-			uint8_t* payload = MQTT_getPayload(message);
-			if (jsonEq((char*) payload, &jsonTokens[i], "temp") == 0)
-			{
-				uint16_t value = parse2num((char*) (payload + jsonTokens[i+1].start), jsonTokens[i+1].size);
-				if (topicType == 1){setTemp = value;}else{currentTemp = value;}
-				break;
-			}
-		}
+		uint16_t value = parseMessage(message);
+		if (topicType == 1){setTemp = value;} else {currentTemp = value;}
 	}
 }
 
@@ -201,9 +267,8 @@ static void work(void){
 	char recivedText[RECIVED_BUFFER_SIZE];
 	char sendBuffor[SEND_BUFFER_SIZE];
 	uint16_t messageLen = 0;
-	uint16_t currentTemp = 1500;
 	startWiFi();
-	
+
 	MqttConfig mqttConfig;
 	getMQTTConfig(&mqttConfig);
 	
@@ -213,33 +278,33 @@ static void work(void){
 	while (1){
 		connectToServer(sendBuffor, recivedText, &mqttConfig, deviceID);
 		
-		messageLen = MQTT_subscribePacket((uint8_t* )sendBuffor, mqttConfig.status_topic, 0);
-		WiFi_sendData(sendBuffor, messageLen);
-		if (WiFi_readData(recivedText, RECIVED_BUFFER_SIZE, 1000) != 0)
-		{
-			handleMessage((uint8_t* )recivedText, &mqttConfig);
-		}
-		
-		messageLen = MQTT_subscribePacket((uint8_t* )sendBuffor, mqttConfig.status_topic, 0);
-		WiFi_sendData(sendBuffor, messageLen);
-		if (WiFi_readData(recivedText, RECIVED_BUFFER_SIZE, 1000) != 0)
-		{
-			handleMessage((uint8_t* )recivedText, &mqttConfig);
+		if(!startSubscribe(sendBuffor, recivedText, &mqttConfig)){
+			continue;
 		}
 		
 		while(1){
 			if (WiFi_readData(recivedText, RECIVED_BUFFER_SIZE, MQTT_CONN_KEEPALIVE * (1000/2)) != 0)
-			{
+			{	
 				handleMessage((uint8_t* )recivedText, &mqttConfig);
+				
+				uint8_t lastState = GET(RELAY_LINE);
 				if (currentTemp < (setTemp-(getHysteresis()/2)))
 				{
 					SET(PORT, RELAY_LINE);
-					messageLen = MQTT_publishPacket((uint8_t*) sendBuffor, mqttConfig.status_topic, "{\"state\": 1}", 0, 0);
-				}else if (currentTemp > (setTemp+(getHysteresis()/2))){
+				} else if (currentTemp > (setTemp+(getHysteresis()/2))){
 					CLR(PORT, RELAY_LINE);
-					messageLen = MQTT_publishPacket((uint8_t*) sendBuffor, mqttConfig.status_topic, "{\"state\": 0}", 0, 0);
 				}
-				WiFi_sendData(sendBuffor, messageLen);
+				
+				if (lastState != GET(RELAY_LINE))
+				{
+					if (GET(RELAY_LINE))
+					{
+						messageLen = MQTT_publishPacket((uint8_t*) sendBuffor, mqttConfig.status_topic, "{\"state\": 1}", 0, 0);
+					}else{
+						messageLen = MQTT_publishPacket((uint8_t*) sendBuffor, mqttConfig.status_topic, "{\"state\": 0}", 0, 0);
+					}
+					WiFi_sendData(sendBuffor, messageLen);
+				}
 			}
 			else
 			{
