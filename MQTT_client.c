@@ -9,7 +9,7 @@
 
 #include <string.h>
 
-int16_t packet_id_counter = 0;
+int16_t packet_id_counter = 1;
 
 char will_topic[] = "";
 char will_payload[] ="";

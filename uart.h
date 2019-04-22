@@ -16,7 +16,7 @@
 
 void usartInit(void);
 
-bool uartTxIsBusy(void);
+uint8_t uartTxIsBusy(void);
 
 void sendLine(char *text);
 void sendData(char *text, uint8_t len);

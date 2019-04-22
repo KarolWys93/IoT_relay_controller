@@ -12,17 +12,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <avr/pgmspace.h>
 
 //private variables
 static char wifi_cmdBuffer[70];
 
+//strings
+static const char s_wifi_status_ok[] PROGMEM = "OK";
+static const char s_wifi_status_error[] PROGMEM = "ERROR";
+static const char s_wifi_status_no_ip[] PROGMEM = "no ip";
+static const char s_wifi_status_already_connect[] PROGMEM = "ALREAY CONNECT";
+static const char s_wifi_status_dns_fail[] PROGMEM = "DNS Fail";
+static const char s_wifi_status_no_ap[] PROGMEM = "No AP";
+static const char s_wifi_status_ready[] PROGMEM = "ready";
+static const char s_wifi_status_send_ok[] PROGMEM = "SEND OK";
+
+static const char s_wifi_cipstart_cmd[] PROGMEM = "AT+CIPSTART=\"TCP\",\"";
+static const char s_wifi_cwjap_set_cmd[] PROGMEM = "AT+CWJAP=\"";
+static const char s_wifi_cipsend_cmd[] PROGMEM = "AT+CIPSEND=";
 
 WiFi_Status WiFi_reset(uint32_t timeout){
 	WiFi_Status status = WiFi_ERROR;
 	sendLine("AT+RST");
 	while(1){
 		if(readLine(wifi_cmdBuffer, sizeof wifi_cmdBuffer / sizeof *wifi_cmdBuffer, timeout) == 0){break;}
-		if(strcmp(wifi_cmdBuffer, "ready") == 0){
+		if(strcmp_P(wifi_cmdBuffer, (char*) &s_wifi_status_ready) == 0){
 			status = WiFi_OK;
 			break;
 		}
@@ -33,7 +47,7 @@ WiFi_Status WiFi_reset(uint32_t timeout){
 WiFi_Status WiFi_SetNetwork(char* SSID, char* password){
 	WiFi_Status status = WiFi_ERROR;
 
-	strcpy(wifi_cmdBuffer, "AT+CWJAP=\"");
+	strcpy_P(wifi_cmdBuffer, (char*) &s_wifi_cwjap_set_cmd);
 	strcat(wifi_cmdBuffer, SSID);
 	strcat(wifi_cmdBuffer, "\",\"");
     strcat(wifi_cmdBuffer, password);
@@ -42,11 +56,13 @@ WiFi_Status WiFi_SetNetwork(char* SSID, char* password){
 	sendLine(wifi_cmdBuffer);
 	if(readLine(wifi_cmdBuffer, sizeof wifi_cmdBuffer/sizeof *wifi_cmdBuffer, 10000) == 0){return status;};
 	
-	if (strcmp(wifi_cmdBuffer, "OK") == 0)
+	if (strcmp_P(wifi_cmdBuffer, (char*) &s_wifi_status_ok) == 0)
 	{
 		status = WiFi_OK;
 	}
-
+	
+	memset(wifi_cmdBuffer, 0, sizeof wifi_cmdBuffer/sizeof *wifi_cmdBuffer);
+	
 	return status;
 }
 
@@ -59,9 +75,9 @@ WiFi_Status WiFi_checkAPconnection(){
 		if(readLine(wifi_cmdBuffer, sizeof wifi_cmdBuffer / sizeof *wifi_cmdBuffer, 10000) == 0){
 			break;
 		}
-		if(strcmp(wifi_cmdBuffer, "No AP") == 0){
+		if(strcmp_P(wifi_cmdBuffer, (char*) &s_wifi_status_no_ap) == 0){
 			waitForAnswer = false;
-		}else if (strcmp(wifi_cmdBuffer, "OK") == 0){
+		}else if (strcmp_P(wifi_cmdBuffer, (char*) &s_wifi_status_ok) == 0){
 			waitForAnswer = false;
 			status = WiFi_OK;
 		}
@@ -76,7 +92,7 @@ WiFi_Status WiFi_openConnection(char* adress, uint16_t port){
 		
 		char portAsString[6];
 		sprintf(portAsString, "%u", port);
-		strcpy(wifi_cmdBuffer, "AT+CIPSTART=\"TCP\",\"");
+		strcpy_P(wifi_cmdBuffer, (char*)&s_wifi_cipstart_cmd);
 		strcat(wifi_cmdBuffer, adress);
 		strcat(wifi_cmdBuffer, "\",");
 		strcat(wifi_cmdBuffer, portAsString);
@@ -86,19 +102,19 @@ WiFi_Status WiFi_openConnection(char* adress, uint16_t port){
 			if(readLine(wifi_cmdBuffer, sizeof wifi_cmdBuffer / sizeof *wifi_cmdBuffer, 10000) == 0){
 				break;
 			}
-			if(strcmp(wifi_cmdBuffer, "OK") == 0){
+			if(strcmp_P(wifi_cmdBuffer, (char *) &s_wifi_status_ok) == 0){
 				waitForAnswer = false;
 				status = WiFi_OK;
-			}else if(strcmp(wifi_cmdBuffer, "ERROR") == 0){
+			}else if(strcmp_P(wifi_cmdBuffer, (char *) &s_wifi_status_error) == 0){
 				waitForAnswer = false;
 				status = WiFi_ERROR;
-			}else if(strcmp(wifi_cmdBuffer, "no ip") == 0){
+			}else if(strcmp_P(wifi_cmdBuffer, (char *) &s_wifi_status_no_ip) == 0){
 				waitForAnswer = false;
 				status = WiFi_NO_IP;
-			}else if(strcmp(wifi_cmdBuffer, "ALREAY CONNECT") == 0){
+			}else if(strcmp_P(wifi_cmdBuffer, (char *) &s_wifi_status_already_connect) == 0){
 				waitForAnswer = false;
 				status = WiFi_ALREADY_CONNECT;
-			}else if(strcmp(wifi_cmdBuffer, "DNS Fail") == 0){
+			}else if(strcmp_P(wifi_cmdBuffer, (char *) &s_wifi_status_dns_fail) == 0){
 				waitForAnswer = false;
 				status = WiFi_DNS_FAIL;
 			}
@@ -116,10 +132,10 @@ WiFi_Status WiFi_closeConnection(){
 		if (readLine(wifi_cmdBuffer, sizeof wifi_cmdBuffer / sizeof *wifi_cmdBuffer, 10000) == 0){
 			break;
 		}
-		if(strcmp(wifi_cmdBuffer, "OK") == 0){
+		if(strcmp_P(wifi_cmdBuffer, (char*)&s_wifi_status_ok) == 0){
 			waitForAnswer = false;
 			status = WiFi_OK;
-		}else if(strcmp(wifi_cmdBuffer, "ERROR") == 0){
+		}else if(strcmp_P(wifi_cmdBuffer, (char*)&s_wifi_status_error) == 0){
 			waitForAnswer = false;
 		}
 	}while(waitForAnswer);
@@ -132,7 +148,7 @@ WiFi_Status WiFi_sendData(char* data, uint16_t dataLength){
 	bool waitForAnswer = true;
 	char sign = '\0';
 
-	sprintf(wifi_cmdBuffer, "AT+CIPSEND=%d", dataLength);
+	sprintf(wifi_cmdBuffer, "%S%d", (wchar_t*)&s_wifi_cipsend_cmd, dataLength);
 
 	sendLine(wifi_cmdBuffer);
 
@@ -142,7 +158,7 @@ WiFi_Status WiFi_sendData(char* data, uint16_t dataLength){
 			sendData(data, dataLength);
 			do{
 				if(readLine(wifi_cmdBuffer, sizeof wifi_cmdBuffer / sizeof *wifi_cmdBuffer, 10000) != 0){//TODO add timeout
-					if(strcmp(wifi_cmdBuffer, "SEND OK") == 0){
+					if(strcmp_P(wifi_cmdBuffer, (char*) &s_wifi_status_send_ok) == 0){
 						status = WiFi_OK;
 						waitForAnswer = false;
 					}

@@ -15,7 +15,7 @@
 
 static char* toSendData;
 volatile static uint8_t toSendLen = 0;
-volatile static bool uartTxBusy = false;
+volatile static uint8_t uartTxBusy = 0;
 
 volatile static char dumbByte = '\0';
 volatile static uint16_t usartRxCounter;
@@ -49,7 +49,7 @@ void usartInit(void)
 	UCSRB = (1 << TXEN) | (1 << RXEN) | (1 << RXCIE);
 }
 
-bool uratTxIsBusy(void){
+uint8_t uartTxIsBusy(void){
 	return uartTxBusy;
 }
 
@@ -64,7 +64,7 @@ void sendData(char *text, uint8_t len){
 	while (!(UCSRA & (1 << UDRE)));
 	toSendData = text;
 	toSendLen = len;
-	uartTxBusy = true;
+	uartTxBusy = 1;
 	//rozpoczêcie transmisji
 	UCSRB |= (1 << UDRIE);
 }
@@ -150,7 +150,7 @@ ISR(USART_UDRE_vect)
 		toSendData++;
 		toSendLen--;
 	}else{
-		uartTxBusy = false;
+		uartTxBusy = 0;
 		UCSRB &= ~(1 << UDRIE); //wylacz przerwania pustego bufora nadawania
 	}
 }
