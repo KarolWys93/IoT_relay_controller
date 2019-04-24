@@ -49,9 +49,12 @@ void setMqttUser(char* mqttUserBuffer, uint8_t len);
 void setMqttPass(char* mqttPassBuffer, uint8_t len);
 
 /* other settings */
-uint16_t getHysteresis(void);
-void setHysteresis(uint16_t hysteresis);
+uint8_t getHysteresis(void);
+void setHysteresis(uint8_t hysteresis);
 
+uint8_t isInvertMode(void);
+
+void setInvertMode(uint8_t invertMode);
 uint8_t isDeviceIDok(void);
 void setDeviceID(char* deviceID);
 void getDeviceID(char* deviceID);

@@ -21,7 +21,9 @@ EEMEM char mqtt_user_eeprom[MQTT_CREDENTIAL_BUFFER_SIZE] = "";
 EEMEM char mqtt_pass_eeprom[MQTT_CREDENTIAL_BUFFER_SIZE] = "";
 EEMEM uint16_t port_eeprom = 1883;
 
-EEMEM uint16_t hysteresis_eeprom = 1;
+EEMEM uint8_t hysteresis_eeprom = 1;
+
+EEMEM uint8_t invert_mode_eeprom = 0;
 
 EEMEM char device_id_eeprom[DEVICE_ID_BUFFER_SIZE] = "--------";
 EEMEM uint8_t device_id_ok_eeprom = 0;
@@ -120,15 +122,24 @@ void setMqttPass(char* mqttPassBuffer, uint8_t len){
 }
 
 /* other settings */
-uint16_t getHysteresis(void){
-	return eeprom_read_word(&hysteresis_eeprom);
+uint8_t getHysteresis(void){
+	return eeprom_read_byte(&hysteresis_eeprom);
 }
-void setHysteresis(uint16_t hysteresis){
-	eeprom_write_word(&hysteresis_eeprom, hysteresis);
+
+void setHysteresis(uint8_t hysteresis){
+	eeprom_write_byte(&hysteresis_eeprom, hysteresis);
 }
 
 uint8_t isDeviceIDok(void){
 	return eeprom_read_byte(&device_id_ok_eeprom);
+}
+
+uint8_t isInvertMode(void){
+	return eeprom_read_byte(&invert_mode_eeprom);
+}
+
+void setInvertMode(uint8_t invertMode){
+	eeprom_write_byte(&invert_mode_eeprom, invertMode);
 }
 
 static void setDeviceIDok(uint8_t ok){

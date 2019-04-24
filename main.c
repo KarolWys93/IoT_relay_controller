@@ -301,11 +301,23 @@ static void work(void){
 				uint8_t newState = lastState;
 				if (currentTemp <= (setTemp-((10*getHysteresis())/2)))
 				{
-					SET(PORT, RELAY_LINE);
-					newState = 1;
+					if (isInvertMode())
+					{
+						CLR(PORT, RELAY_LINE);
+						newState = 0;
+					} else {
+						SET(PORT, RELAY_LINE);
+						newState = 1;
+					}
 				} else if (currentTemp >= (setTemp+((10*getHysteresis())/2))){
-					CLR(PORT, RELAY_LINE);
-					newState = 0;
+					if (isInvertMode())
+					{
+						SET(PORT, RELAY_LINE);
+						newState = 1;
+					}else{
+						CLR(PORT, RELAY_LINE);
+						newState = 0;
+					}
 				}
 				
 				if (lastState != newState)

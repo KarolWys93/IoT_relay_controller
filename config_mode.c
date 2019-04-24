@@ -41,6 +41,7 @@ static const char config_mqttuser_cmd[] PROGMEM = "MQTT_User";
 static const char config_mqttpass_cmd[] PROGMEM = "MQTT_Pass";
 static const char config_port_cmd[] PROGMEM = "Port";
 static const char config_hist_cmd[] PROGMEM = "Hist";
+static const char config_invert_cmd[] PROGMEM = "Invert";
 
 
 static void printFromFlash(const char* text){
@@ -102,6 +103,10 @@ static void printConfig(void){
 		sendLineSeparator();
 
 		sprintf(buffer, "%S: %u", (wchar_t* ) &config_hist_cmd, getHysteresis());
+		sendLine(buffer);
+		sendLineSeparator();
+		
+		sprintf(buffer, "%S: %u", (wchar_t* ) &config_invert_cmd, isInvertMode());
 		sendLine(buffer);
 		sendLineSeparator();
 }
@@ -190,6 +195,13 @@ void config_mode(void){
 		 {
 			 getSetting(textBuffer, BUFFER_SIZE);
 			 setHysteresis(atoi(textBuffer));
+			 printFromFlash((char*)&config_confirm_label);
+		 }
+		 
+		 if (strcmp_P(textBuffer, (const char*) &config_invert_cmd) == 0)
+		 {
+			 getSetting(textBuffer, BUFFER_SIZE);
+			 setInvertMode(atoi(textBuffer));
 			 printFromFlash((char*)&config_confirm_label);
 		 }
 	 }
