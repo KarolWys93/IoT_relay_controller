@@ -121,7 +121,7 @@ void setMqttPass(char* mqttPassBuffer, uint8_t len){
 
 /* other settings */
 uint16_t getHysteresis(void){
-	return 100*eeprom_read_word(&hysteresis_eeprom);
+	return eeprom_read_word(&hysteresis_eeprom);
 }
 void setHysteresis(uint16_t hysteresis){
 	eeprom_write_word(&hysteresis_eeprom, hysteresis);

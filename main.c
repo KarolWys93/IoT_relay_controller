@@ -32,8 +32,8 @@ static const char s_token[] PROGMEM = "\"temp\"";
 static const char s_response_1[] PROGMEM = "{\"state\": 1}";
 static const char s_response_0[] PROGMEM = "{\"state\": 0}";	
 
-static uint16_t currentTemp = 1500;
-static uint16_t setTemp = 1500;
+static uint16_t currentTemp = 150;
+static uint16_t setTemp = 150;
 
 static void init(void);
 static void work(void);
@@ -218,12 +218,14 @@ static uint16_t parse2num(char* string, uint8_t len){
 	parsedNum = atoi(string);
 	if (i >= len)
 	{
-		return parsedNum*100;
+		return parsedNum*10;
 	}
-	parsedDecimal = atoi(string+i+1);
 	
-	if (parsedNum > 99 || parsedDecimal > 99){return 0;}
-	return (parsedNum * 100) + parsedDecimal;
+	parsedDecimal = *(string+i+1);
+	parsedDecimal -= 48;
+	
+	if (parsedNum > 99 || parsedDecimal > 9){return 0;}
+	return (parsedNum * 10) + parsedDecimal;
 }
 
 static uint16_t parseMessage(uint8_t* message){
@@ -296,17 +298,17 @@ static void work(void){
 				//sprintf(sendBuffor, "V: %d, %d, %d", currentTemp, setTemp, getHysteresis());
 				//sendLine(sendBuffor);
 				uint8_t lastState = GET(RELAY_LINE) ? 1 : 0;
-				uint8_t newState = 0;
-				if (currentTemp < (setTemp-(getHysteresis()/2)))
+				uint8_t newState = lastState;
+				if (currentTemp <= (setTemp-((10*getHysteresis())/2)))
 				{
 					SET(PORT, RELAY_LINE);
 					newState = 1;
-				} else if (currentTemp > (setTemp+(getHysteresis()/2))){
+				} else if (currentTemp >= (setTemp+((10*getHysteresis())/2))){
 					CLR(PORT, RELAY_LINE);
 					newState = 0;
 				}
 				
-				if (lastState ^ newState)
+				if (lastState != newState)
 				{
 					char response[15];
 					if (newState)
